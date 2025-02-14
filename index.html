@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculateur de Surebet</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #222;
+            --container-bg: white;
+            --button-bg: #007bff;
+            --button-hover: #0056b3;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #222;
+            --text-color: #f8f9fa;
+            --container-bg: #333;
+            --button-bg: #0a84ff;
+            --button-hover: #0066cc;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            text-align: center;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            background: var(--container-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: 0.3s;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        input, button {
+            margin: 5px;
+            padding: 10px;
+            width: 90%;
+            border: none;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+
+        input {
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--text-color);
+            padding: 5px;
+        }
+
+        button {
+            background: var(--button-bg);
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: var(--button-hover);
+        }
+
+        .result {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+        .theme-toggle:hover {
+            background: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Mode Sombre</button>
+    <h2>Calculateur de Surebet</h2>
+    
+    <label>Mise totale (€) :</label>
+    <input type="number" id="miseTotale" placeholder="Ex: 100">
+    
+    <div id="cotesContainer">
+        <div class="coteGroup">
+            <label>Cote 1 :</label>
+            <input type="number" step="0.01" class="coteInput">
+        </div>
+        <div class="coteGroup">
+            <label>Cote 2 :</label>
+            <input type="number" step="0.01" class="coteInput">
+        </div>
+    </div>
+    
+    <button onclick="ajouterCote()">➕ Ajouter une option</button>
+    <button onclick="supprimerCote()">➖ Supprimer une option</button>
+    <button onclick="calculerSurebet()">✅ Calculer Surebet</button>
+    <button onclick="resetForm()">🔄 Réinitialiser</button>
+    
+    <div id="resultat" class="result"></div>
+    <div id="simulation" class="result"></div>
+</div>
+
+<script>
+    function toggleTheme() {
+        const body = document.body;
+        const button = document.querySelector(".theme-toggle");
+        if (body.dataset.theme === "dark") {
+            body.dataset.theme = "light";
+            button.innerHTML = "🌙 Mode Sombre";
+        } else {
+            body.dataset.theme = "dark";
+            button.innerHTML = "☀️ Mode Clair";
+        }
+    }
+
+    function ajouterCote() {
+        let container = document.getElementById("cotesContainer");
+        let count = container.getElementsByClassName("coteGroup").length + 1;
+
+        let div = document.createElement("div");
+        div.className = "coteGroup";
+        div.innerHTML = `<label>Cote ${count} :</label><input type="number" step="0.01" class="coteInput">`;
+        container.appendChild(div);
+    }
+
+    function supprimerCote() {
+        let container = document.getElementById("cotesContainer");
+        let groups = container.getElementsByClassName("coteGroup");
+        if (groups.length > 2) {
+            container.removeChild(groups[groups.length - 1]);
+        }
+    }
+
+    function resetForm() {
+        document.getElementById("miseTotale").value = "";
+        document.getElementById("resultat").innerHTML = "";
+        document.getElementById("simulation").innerHTML = "";
+        
+        let container = document.getElementById("cotesContainer");
+        container.innerHTML = `
+            <div class="coteGroup">
+                <label>Cote 1 :</label>
+                <input type="number" step="0.01" class="coteInput">
+            </div>
+            <div class="coteGroup">
+                <label>Cote 2 :</label>
+                <input type="number" step="0.01" class="coteInput">
+            </div>
+        `;
+    }
+
+    function calculerSurebet() {
+        let miseTotale = parseFloat(document.getElementById("miseTotale").value);
+        let cotes = Array.from(document.getElementsByClassName("coteInput")).map(input => parseFloat(input.value.replace(',', '.')));
+
+        if (isNaN(miseTotale) || cotes.some(isNaN) || cotes.length < 2) {
+            document.getElementById("resultat").innerHTML = "❌ Entrez des valeurs valides.";
+            return;
+        }
+
+        let sommeInverses = cotes.reduce((acc, cote) => acc + (1 / cote), 0);
+
+        if (sommeInverses >= 1) {
+            document.getElementById("resultat").innerHTML = "❌ Surebet impossible.";
+            document.getElementById("simulation").innerHTML = "";
+            return;
+        }
+
+        let mises = cotes.map(cote => (miseTotale / (cote * sommeInverses)).toFixed(2));
+        let resultHTML = "✅ Surebet possible ! <br><br>";
+        
+        cotes.forEach((cote, i) => {
+            resultHTML += `Misez <b>${mises[i]}€</b> sur l'option ${i + 1} (Cote ${cote})<br>`;
+        });
+
+        document.getElementById("resultat").innerHTML = resultHTML;
+
+        // Simulation des gains potentiels
+        let simulationHTML = "<h3>Gains potentiels :</h3>";
+        cotes.forEach((cote, i) => {
+            let gain = (mises[i] * cote).toFixed(2);
+            simulationHTML += `Si l'option ${i + 1} (Cote ${cote}) gagne, profit net : <b>${(gain - miseTotale).toFixed(2)}€</b><br>`;
+        });
+
+        document.getElementById("simulation").innerHTML = simulationHTML;
+    }
+</script>
+
+</body>
+</html>
